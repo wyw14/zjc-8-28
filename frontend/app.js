@@ -30,9 +30,13 @@ createApp({
 
     const newDream = ref({
       content: '',
-      lucidity: 3,
+      lucidity: 0,
       date: new Date().toISOString().split('T')[0]
     });
+
+    const showConfirmDialog = ref(false);
+    const qualityWarnings = ref([]);
+    const savingDream = ref(false);
 
     const isPlaying = ref(false);
     let audioContext = null;
@@ -164,12 +168,44 @@ createApp({
       fetchMonthlyStats();
     }
 
+    async function checkDreamQuality() {
+      try {
+        const data = await apiRequest('/dreams/check', {
+          method: 'POST',
+          body: JSON.stringify(newDream.value)
+        });
+        return data;
+      } catch (e) {
+        console.error('质量检查失败', e);
+        return { passed: true, warnings: [] };
+      }
+    }
+
     async function addDream() {
       if (!newDream.value.content.trim()) {
         alert('请输入梦境内容');
         return;
       }
 
+      if (savingDream.value) return;
+
+      try {
+        const checkResult = await checkDreamQuality();
+
+        if (!checkResult.passed) {
+          qualityWarnings.value = checkResult.warnings;
+          showConfirmDialog.value = true;
+          return;
+        }
+
+        await saveDream();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function saveDream() {
+      savingDream.value = true;
       try {
         await apiRequest('/dreams', {
           method: 'POST',
@@ -178,14 +214,23 @@ createApp({
 
         newDream.value = {
           content: '',
-          lucidity: 3,
+          lucidity: 0,
           date: new Date().toISOString().split('T')[0]
         };
 
+        showConfirmDialog.value = false;
+        qualityWarnings.value = [];
         loadData();
       } catch (e) {
         alert(e.message);
+      } finally {
+        savingDream.value = false;
       }
+    }
+
+    function cancelSave() {
+      showConfirmDialog.value = false;
+      qualityWarnings.value = [];
     }
 
     function loadData() {
@@ -276,7 +321,12 @@ createApp({
       selectedYear,
       selectedMonth,
       yearOptions,
-      onMonthChange
+      onMonthChange,
+      showConfirmDialog,
+      qualityWarnings,
+      savingDream,
+      saveDream,
+      cancelSave
     };
   }
 }).mount('#app');

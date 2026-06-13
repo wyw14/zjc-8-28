@@ -129,6 +129,32 @@
           </div>
         </div>
       </main>
+
+      <div v-if="showConfirmDialog" class="modal-overlay" @click.self="cancelSave">
+        <div class="modal-dialog">
+          <h3 class="modal-title">⚠️ 梦境质量检查提示</h3>
+          <div class="modal-body">
+            <p>保存前检测到以下问题，是否继续保存？</p>
+            <ul class="warning-list">
+              <li v-for="(warning, index) in qualityWarnings" :key="index" class="warning-item">
+                <span class="warning-icon">
+                  <span v-if="warning.type === 'short_content'">📝</span>
+                  <span v-else-if="warning.type === 'duplicate_date'">📅</span>
+                  <span v-else-if="warning.type === 'no_lucidity'">⭐</span>
+                  <span v-else>⚠️</span>
+                </span>
+                <span class="warning-text">{{ warning.message }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-outline" @click="cancelSave">返回修改</button>
+            <button class="btn-primary" @click="saveDream" :disabled="savingDream">
+              {{ savingDream ? '保存中...' : '确认保存' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
