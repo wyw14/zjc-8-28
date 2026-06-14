@@ -34,8 +34,6 @@ createApp({
       date: new Date().toISOString().split('T')[0]
     });
 
-    const showConfirmDialog = ref(false);
-    const qualityWarnings = ref([]);
     const savingDream = ref(false);
 
     const isPlaying = ref(false);
@@ -193,8 +191,8 @@ createApp({
         const checkResult = await checkDreamQuality();
 
         if (!checkResult.passed) {
-          qualityWarnings.value = checkResult.warnings;
-          showConfirmDialog.value = true;
+          const messages = checkResult.warnings.map((w, i) => `${i + 1}. ${w.message}`).join('\n');
+          alert(`梦境质量检查未通过，请修改后再保存：\n\n${messages}`);
           return;
         }
 
@@ -218,19 +216,12 @@ createApp({
           date: new Date().toISOString().split('T')[0]
         };
 
-        showConfirmDialog.value = false;
-        qualityWarnings.value = [];
         loadData();
       } catch (e) {
         alert(e.message);
       } finally {
         savingDream.value = false;
       }
-    }
-
-    function cancelSave() {
-      showConfirmDialog.value = false;
-      qualityWarnings.value = [];
     }
 
     function loadData() {
@@ -321,12 +312,7 @@ createApp({
       selectedYear,
       selectedMonth,
       yearOptions,
-      onMonthChange,
-      showConfirmDialog,
-      qualityWarnings,
-      savingDream,
-      saveDream,
-      cancelSave
+      onMonthChange
     };
   }
 }).mount('#app');

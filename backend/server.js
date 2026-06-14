@@ -140,6 +140,28 @@ app.get('/api/dreams', authenticateToken, (req, res) => {
   res.json(dreams.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
+function validateDream(content, lucidity, date, userId) {
+  const errors = [];
+
+  if (!content || content.trim().length < 10) {
+    errors.push('梦境内容过短，建议至少10个字符以更好地记录梦境细节');
+  }
+
+  if (!lucidity || lucidity < 1 || lucidity > 5) {
+    errors.push('请选择清醒度等级（1-5星）');
+  }
+
+  if (date) {
+    const dreams = readJSON(DREAMS_FILE);
+    const duplicate = dreams.find(d => d.userId === userId && d.date === date);
+    if (duplicate) {
+      errors.push(`该日期（${date}）已有一条梦境记录`);
+    }
+  }
+
+  return errors;
+}
+
 app.post('/api/dreams/check', authenticateToken, (req, res) => {
   const { content, lucidity, date } = req.body;
   const warnings = [];
@@ -181,12 +203,17 @@ app.post('/api/dreams', authenticateToken, (req, res) => {
     return res.status(400).json({ error: '内容和日期必填' });
   }
 
+  const errors = validateDream(content, lucidity, date, req.user.id);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors[0] });
+  }
+
   const dreams = readJSON(DREAMS_FILE);
   const newDream = {
     id: dreams.length > 0 ? Math.max(...dreams.map(d => d.id)) + 1 : 1,
     userId: req.user.id,
     content,
-    lucidity: lucidity ? parseInt(lucidity) : 0,
+    lucidity: parseInt(lucidity),
     date
   };
 
